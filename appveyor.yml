@@ -5,7 +5,10 @@ init:
 environment:
   _zip: '%APPVEYOR_BUILD_FOLDER%\ElDewrito-%APPVEYOR_BUILD_VERSION%.7z'
   _7z: 7z -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on a %_zip% -r -x!*.pdb -x!*.config
-  _release: '"C:\Program Files (x86)\MSBuild\12.0\Bin\MSBuild.exe" "ElDorito.vcxproj" /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:Configuration=Release /p:Platform="x86"'
+  _release: '"C:\Program Files (x86)\MSBuild\12.0\Bin\MSBuild.exe" "ElDorito.sln" /p:Configuration=Release /m /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"'
+  BOOST_ROOT: C:\Libraries\boost
+  BOOST_LIB_VS12: C:\Libraries\boost\lib32-msvc-12.0
+  HaloFolder: C:\HaloFolder
 install:
 - cmd: >-
     cinst cmake -version 3.2.3 -y
@@ -13,37 +16,45 @@ install:
     cmake --version
 
 
-    CD %APPVEYOR_BUILD_FOLDER%\
+    git clone -b master https://github.com/scooterpsu/medalPack.git %HaloFolder%\mods\medals\default
+
+    rmdir /s /q %HaloFolder%\mods\medals\default\.git
+
+
+    cd %APPVEYOR_BUILD_FOLDER%
+
+    appveyor DownloadFile https://github.com/theTwist84/addBoostDeps/releases/download/0.1.0/addBoostDeps.exe
+
+    addBoostDeps.exe %APPVEYOR_BUILD_FOLDER%
 
     generate_vs2013_sln_files.bat
 build_script:
 - cmd: >-
+    mkdir %HaloFolder%\mods\ui\web
+
+
     CD %APPVEYOR_BUILD_FOLDER%\build\
 
     %_release%
 
-
-    CD %APPVEYOR_BUILD_FOLDER%\build\Release\
-
-    appveyor PushArtifact mtndew.dll
+    appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%\build\Release\mtndew.dll
 
 
-    %_7z% *.dll
+    echo F|xcopy /y %APPVEYOR_BUILD_FOLDER%\build\Release\mtndew.dll %HaloFolder%
 
+    set WhyDidntItBuildThis="echo F|xcopy /y %APPVEYOR_BUILD_FOLDER%\build\Release\CefProcess.exe %HaloFolder%\custom_menu.exe"
 
-    CD %APPVEYOR_BUILD_FOLDER%\
+    echo F|xcopy /y %APPVEYOR_BUILD_FOLDER%\dewrito.json %HaloFolder%
 
-    %_7z% dewrito.json
+    echo D|xcopy /e /y %APPVEYOR_BUILD_FOLDER%\libs\libwebsockets\bin %HaloFolder%
 
-    CD %APPVEYOR_BUILD_FOLDER%\libs\libwebsockets\bin\
+    echo D|xcopy /e /y %APPVEYOR_BUILD_FOLDER%\libs\teamspeak\bin %HaloFolder%
 
-    %_7z% *
+    echo D|xcopy /e /y %APPVEYOR_BUILD_FOLDER%\artifact_extras %HaloFolder%
 
-    CD %APPVEYOR_BUILD_FOLDER%\libs\teamspeak\bin\
+    echo D|xcopy /e /y %APPVEYOR_BUILD_FOLDER%\web %HaloFolder%\mods\ui\web
 
-    %_7z% *
-
-    CD %APPVEYOR_BUILD_FOLDER%\artifact_extras\
+    CD %HaloFolder%
 
     %_7z% *
 
